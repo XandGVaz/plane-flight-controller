@@ -9,10 +9,14 @@
 #include "servo.hpp"
 
 // Biblioteca para display
-#include "TFT_eSPI.h"
+#include "display.hpp"
 
 /*===============================================================================*/
 // Pinagem dos componentes
+
+// Display
+#define DISPLAY_SDA_PIN 21
+#define DISPLAY_SCL_PIN 22
 
 // Pinos servo flaps 
 #define FLAP_LEFT_SERVO_PIN 2
@@ -37,22 +41,25 @@
 #define RUDDER_SERVO_CHANNEL 6
 
 /*===============================================================================*/
-// Variáveis globais
+// Instanciação dos módulos
+
+// Display
+Display16x2 Display(DISPLAY_SDA_PIN, DISPLAY_SCL_PIN);
 
 // Servos flaps
-Servo flapLeftServo(FLAP_LEFT_SERVO_PIN, FLAP_LEFT_SERVO_CHANNEL);
-Servo flapRightServo(FLAP_RIGHT_SERVO_PIN, FLAP_RIGHT_SERVO_CHANNEL);
+Servo FlapLeftServo(FLAP_LEFT_SERVO_PIN, FLAP_LEFT_SERVO_CHANNEL);
+Servo FlapRightServo(FLAP_RIGHT_SERVO_PIN, FLAP_RIGHT_SERVO_CHANNEL);
 
 // Servos ailerons
-Servo aileronLeftServo(AILERON_LEFT_SERVO_PIN, AILERON_LEFT_SERVO_CHANNEL);
-Servo aileronRightServo(AILERON_RIGHT_SERVO_PIN, AILERON_RIGHT_SERVO_CHANNEL);
+Servo AileronLeftServo(AILERON_LEFT_SERVO_PIN, AILERON_LEFT_SERVO_CHANNEL);
+Servo AileronRightServo(AILERON_RIGHT_SERVO_PIN, AILERON_RIGHT_SERVO_CHANNEL);
 
 // Servos profundor
-Servo elevatorLeftServo(ELEVATOR_LEFT_SERVO_PIN, ELEVATOR_LEFT_SERVO_CHANNEL);
-Servo elevatorRightServo(ELEVATOR_RIGHT_SERVO_PIN, ELEVATOR_RIGHT_SERVO_CHANNEL);
+Servo ElevatorLeftServo(ELEVATOR_LEFT_SERVO_PIN, ELEVATOR_LEFT_SERVO_CHANNEL);
+Servo ElevatorRightServo(ELEVATOR_RIGHT_SERVO_PIN, ELEVATOR_RIGHT_SERVO_CHANNEL);
 
 // Servo leme
-Servo rudderServo(RUDDER_SERVO_PIN, RUDDER_SERVO_CHANNEL);
+Servo RudderServo(RUDDER_SERVO_PIN, RUDDER_SERVO_CHANNEL);
 
 
 void setup() {
