@@ -11,12 +11,29 @@
 // Biblioteca para display
 #include "display.hpp"
 
+// Biblioteca para cartão SD
+#include "SDCardLogger.h"
+
+// Biblioteca FreeRTOS
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/timers.h"
+
 /*===============================================================================*/
 // Pinagem dos componentes
 
-// Display
+// Pinos Display
 #define DISPLAY_SDA_PIN 21
 #define DISPLAY_SCL_PIN 22
+
+// Pinos cartão SD
+#define SD_CS        15
+/* Os pinos padrões na biblioteca SD usada em "SDCardLogger.h"  para ESP32 são:
+   SCK  = 14
+   MISO = 12
+   MOSI = 13  
+*/
 
 // Pinos servo flaps 
 #define FLAP_LEFT_SERVO_PIN 2
@@ -40,6 +57,10 @@
 #define RUDDER_SERVO_PIN 8
 #define RUDDER_SERVO_CHANNEL 6
 
+// Pinos Joystick
+#define JOYSTICK_ADC_X_PIN 34
+#define JOYSTICK_ADC_y_PIN 35
+
 /*===============================================================================*/
 // Instanciação dos módulos
 
@@ -61,6 +82,26 @@ Servo ElevatorRightServo(ELEVATOR_RIGHT_SERVO_PIN, ELEVATOR_RIGHT_SERVO_CHANNEL)
 // Servo leme
 Servo RudderServo(RUDDER_SERVO_PIN, RUDDER_SERVO_CHANNEL);
 
+/*===============================================================================*/
+// Estados de voo
+
+// Enum de possíveis estados de voo
+typedef enum{
+  PITCH_UP = 0U,
+  PITCH_DOWN,
+  ROLL_RIGHT,
+  ROLL_LEFT,
+}flightState;
+
+// Textos para estados de voo
+String flightStatesTexts[] = {
+  "SUBIDA",
+  "DESCIDA",
+  "DIREITA",
+  "ESQUERDA"
+};
+
+/*===============================================================================*/
 
 void setup() {
   // put your setup code here, to run once:
