@@ -116,9 +116,16 @@ xTimerHandle xJoystickReadTimerHandle = NULL;
 typedef enum{
   PITCH_UP = 0U,
   PITCH_DOWN,
-  ROLL_RIGHT,
-  ROLL_LEFT,
+  YAW_RIGHT,
+  YAW_LEFT,
 }flightState;
+
+// Dado de controle com estado e angulatura do controle
+typedef struct{
+  flightState state;
+  uint16_t xValue;
+  uint16_t yValue;
+}controlData;
 
 // Textos para estados de voo
 String flightStatesTexts[] = {
@@ -180,7 +187,7 @@ void setup() {
   // Criação das filas
   xFlightStateToDisplay = xQueueCreate(5, sizeof(flightState));
   xFlightStateToSDCard = xQueueCreate(5, sizeof(flightState));
-  xFlightStateToControl = xQueueCreate(5, sizeof(flightState));
+  xFlightStateToControl = xQueueCreate(5, sizeof(controlData));
 
   // Criação dos software timers
   xJoystickReadTimerHandle = xTimerCreate("JOYSTICK_READ_TIMER", pdMS_TO_TICKS(100), pdTRUE, NULL, vJoystickReadTimerCallback);
@@ -235,12 +242,15 @@ void vDisplayWriteTask(void *pvParameters){
   
   while(1){
     // Espera por um estado de voo na fila
-    if(xQueueReceive(xFlightStateToDisplay, &receivedFlightState, portMAX_DELAY) == pdTRUE){
-      // Escreve o estado de voo no display
-      Display.clear();
-      Display.writeMessage("Estado Voo:", 0);
-      Display.writeMessage(flightStatesTexts[receivedFlightState],1);
-    }
+    xQueueReceive(xFlightStateToDisplay, &receivedFlightState, 0);
+    
+    // Escreve o estado de voo no display
+    Display.clear();
+    Display.writeMessage("Estado Voo:", 0);
+    Display.writeMessage(flightStatesTexts[receivedFlightState],1);
+    
+    // Pequena pausa para evitar sobrecarga de escrita no display
+    vTaskDelay(pdMS_TO_TICKS(200));
   }
 }
 
@@ -269,32 +279,42 @@ void vJoystickReadTask(void *pvParameters){
   // Inicialização do timer de leitura do joystick
   xTimerStart(xJoystickReadTimerHandle, 0);
 
+  // Variável para receber dado de controle do joystick
+  controlData controlData;
+
   while(1){
     // Espera pela notificação do timer
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
     // Leitura dos valores do joystick
-    int16_t xValue = analogRead(JOYSTICK_ADC_X_PIN);
-    int16_t yValue = analogRead(JOYSTICK_ADC_y_PIN);
+    controlData.xValue = analogRead(JOYSTICK_ADC_X_PIN);
+    controlData.yValue = analogRead(JOYSTICK_ADC_y_PIN);
 
     // Determinação do estado de voo baseado nos valores lidos
     flightState currentFlightState;
-    if(yValue > 3000){
+    if(controlData.yValue > 3000){
       currentFlightState = PITCH_UP;
-    } else if(yValue < 1000){
+    } 
+    else if(controlData.yValue < 1000){
       currentFlightState = PITCH_DOWN;
-    } else if(xValue > 3000){
-      currentFlightState = ROLL_RIGHT;
-    } else if(xValue < 1000){
-      currentFlightState = ROLL_LEFT;
-    } else {
+    } 
+    else if(controlData.xValue > 3000){
+      currentFlightState = YAW_RIGHT;
+    } 
+    else if(controlData.xValue < 1000){
+      currentFlightState = YAW_LEFT;
+    } 
+    else {
       continue; // Nenhuma ação detectada
     }
+
+    // Atribuição do estado de voo ao dado de controle
+    controlData.state = currentFlightState;
 
     // Envio do estado de voo para as filas correspondentes
     xQueueSend(xFlightStateToDisplay, &currentFlightState, 0);
     xQueueSend(xFlightStateToSDCard, &currentFlightState, 0);
-    xQueueSend(xFlightStateToControl, &currentFlightState, 0);
+    xQueueSend(xFlightStateToControl, &controlData, 0);
   }
 }
 
@@ -302,7 +322,7 @@ void vJoystickReadTask(void *pvParameters){
 // Task de controle dos servos
 void vControlTask(void *pvParameters){
   // Variável para receber o estado de voo da fila
-  flightState receivedFlightState; 
+  controlData receivedControlData;
 
   // Seta todos os servos na posição neutra
   FlapLeftServo.setAngle(90);
@@ -315,32 +335,52 @@ void vControlTask(void *pvParameters){
 
   while(1){
     // Espera por um estado de voo na fila
-    if(xQueueReceive(xFlightStateToControl, &receivedFlightState, portMAX_DELAY) == pdTRUE){
+    if(xQueueReceive(xFlightStateToControl, &receivedControlData, portMAX_DELAY) == pdTRUE){
       
       // Controle dos servos baseado no estado de voo recebido
-      switch(receivedFlightState){
+      switch(receivedControlData.state){
         // Controle para subida
         case PITCH_UP:
-          ElevatorLeftServo.setAngle(30);
-          ElevatorRightServo.setAngle(30);
+          FlapLeftServo.setAngle(90);         // flap esquerdo neutro
+          FlapRightServo.setAngle(90);        // flap direito neutro
+          AileronLeftServo.setAngle(90);      // aileron esquerdo neutro
+          AileronRightServo.setAngle(90);     // aileron direito neutro
+          ElevatorLeftServo.setAngle(120);    // profundor esquerdo para cima
+          ElevatorRightServo.setAngle(120);   // profundor direito para cima
+          RudderServo.setAngle(90);           // leme neutro
           break;
         
         // Controle para descida
         case PITCH_DOWN:
-          ElevatorLeftServo.setAngle(150);
-          ElevatorRightServo.setAngle(150);
+          FlapLeftServo.setAngle(90);         // flap esquerdo neutro
+          FlapRightServo.setAngle(90);        // flap direito neutro
+          AileronLeftServo.setAngle(90);      // aileron esquerdo neutro
+          AileronRightServo.setAngle(90);     // aileron direito neutro
+          ElevatorLeftServo.setAngle(60);     // profundor esquerdo para baixo
+          ElevatorRightServo.setAngle(60);    // profundor direito para baixo
+          RudderServo.setAngle(90);           // leme neutro
           break;
         
         // Controle para virar à direita
-        case ROLL_RIGHT:
-          AileronLeftServo.setAngle(150);
-          AileronRightServo.setAngle(30);
+        case YAW_RIGHT:
+          FlapLeftServo.setAngle(90);         // flap esquerdo neutro
+          FlapRightServo.setAngle(90);        // flap direito neutro
+          AileronLeftServo.setAngle(90);      // aileron esquerdo neutro
+          AileronRightServo.setAngle(90);     // aileron direito neutro
+          ElevatorLeftServo.setAngle(90);     // profundor esquerdo neutro
+          ElevatorRightServo.setAngle(90);    // profundor direito neutro
+          RudderServo.setAngle(75);           // leme para a direita
           break;
         
         // Controle para virar à esquerda
-        case ROLL_LEFT:
-          AileronLeftServo.setAngle(30);
-          AileronRightServo.setAngle(150);
+        case YAW_LEFT:
+          FlapLeftServo.setAngle(90);         // flap esquerdo neutro
+          FlapRightServo.setAngle(90);        // flap direito neutro
+          AileronLeftServo.setAngle(90);      // aileron esquerdo neutro
+          AileronRightServo.setAngle(90);     // aileron direito neutro
+          ElevatorLeftServo.setAngle(90);     // profundor esquerdo neutro
+          ElevatorRightServo.setAngle(90);    // profundor direito neutro
+          RudderServo.setAngle(105);          // leme para a esquerda
           break;
         
         default:
