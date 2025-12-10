@@ -1,4 +1,3 @@
-
 /*===============================================================================*/
 // Inclusão de bibliotecas necessárias
 
@@ -35,11 +34,6 @@
    MOSI = 13  
 */
 
-// Pinos servo flaps 
-#define FLAP_LEFT_SERVO_PIN 2
-#define FLAP_LEFT_SERVO_CHANNEL 0
-#define FLAP_RIGHT_SERVO_PIN 0
-#define FLAP_RIGHT_SERVO_CHANNEL 1
 
 // Pinos servo ailerons
 #define AILERON_LEFT_SERVO_PIN 26
@@ -67,10 +61,6 @@
 
 // Display
 Display16x2 Display(DISPLAY_SDA_PIN, DISPLAY_SCL_PIN);
-
-// Servos flaps
-Servo FlapLeftServo(FLAP_LEFT_SERVO_PIN, FLAP_LEFT_SERVO_CHANNEL);
-Servo FlapRightServo(FLAP_RIGHT_SERVO_PIN, FLAP_RIGHT_SERVO_CHANNEL);
 
 // Servos ailerons
 Servo AileronLeftServo(AILERON_LEFT_SERVO_PIN, AILERON_LEFT_SERVO_CHANNEL);
@@ -190,14 +180,6 @@ void setup() {
   } 
 
   // Inicialização dos servos
-  if(!FlapLeftServo.setup()){
-    Serial.println("Erro na inicialização do servo Flap Esquerdo!");
-    while(1);
-  }
-  if(!FlapRightServo.setup()){
-    Serial.println("Erro na inicialização do servo Flap Direito!");
-    while(1);
-  }
   if(!AileronLeftServo.setup()){
     Serial.println("Erro na inicialização do servo Aileron Esquerdo!");
     while(1);
@@ -336,8 +318,8 @@ void vSDCardSaveTask(void *pvParameters){
       SdLogger.FlushPackage();
     }
 
-    // Aguarda um tempo antes da próxima iteração
-    vTaskDelay(pdMS_TO_TICKS(10));
+    // Aguarda 100ms antes da próxima iteração
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -419,8 +401,6 @@ void vControlTask(void *pvParameters){
     
     // Seta todos os servos na posição neutra se o avião estiver em cruzeiro
     if(receivedControlData.state == CRUISE){
-      FlapLeftServo.setAngle(90);
-      FlapRightServo.setAngle(90);
       AileronLeftServo.setAngle(90);
       AileronRightServo.setAngle(90);
       ElevatorLeftServo.setAngle(90);
