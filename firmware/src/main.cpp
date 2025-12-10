@@ -227,29 +227,29 @@ void setup() {
   xChangeYawOrRollToControl = xQueueCreate(1, sizeof(xMoviementState));
 
   // Criação dos software timers
-  xJoystickReadTimerHandle = xTimerCreate("JOYSTICK_READ_TIMER", pdMS_TO_TICKS(70), pdTRUE, NULL, vJoystickReadTimerCallback);
+  xJoystickReadTimerHandle = xTimerCreate("JOYSTICK_READ_TIMER", pdMS_TO_TICKS(50), pdTRUE, NULL, vJoystickReadTimerCallback);
   if(xJoystickReadTimerHandle == NULL){
     Serial.println("Erro na criação do timer de leitura do joystick!");
     while(1);
   }
 
   // Criação das tasks
-  xTaskCreatePinnedToCore(vDisplayWriteTask, "DISPLAY_WRITE_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 2, &xDisplayWriteTaskHandle, PRO_CPU_NUM);
+  xTaskCreatePinnedToCore(vDisplayWriteTask, "DISPLAY_WRITE_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 1, &xDisplayWriteTaskHandle, PRO_CPU_NUM);
   if(xDisplayWriteTaskHandle == NULL){
     Serial.println("Erro na criação da task de escrita no display!");
     while(1);
   }
-  xTaskCreatePinnedToCore(vSDCardSaveTask, "SDCARD_SAVE_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 2, &xSDCardSaveTaskHandle, APP_CPU_NUM);
+  xTaskCreatePinnedToCore(vSDCardSaveTask, "SDCARD_SAVE_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 1, &xSDCardSaveTaskHandle, APP_CPU_NUM);
   if(xSDCardSaveTaskHandle == NULL){
     Serial.println("Erro na criação da task de salvamento no cartão SD!");
     while(1);
   }
-  xTaskCreatePinnedToCore(vJoystickReadTask, "JOYSTICK_READ_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 1, &xJoystickReadTaskHandle, APP_CPU_NUM);
+  xTaskCreatePinnedToCore(vJoystickReadTask, "JOYSTICK_READ_TASK", configMINIMAL_STACK_SIZE + (1024 * 20), NULL, 2, &xJoystickReadTaskHandle, APP_CPU_NUM);
   if(xJoystickReadTaskHandle == NULL){
     Serial.println("Erro na criação da task de leitura do joystick!");
     while(1);
   }
-  xTaskCreatePinnedToCore(vControlTask, "CONTROL_TASK", configMINIMAL_STACK_SIZE + (1024 * 10), NULL, 1, &xControlTaskHandle, PRO_CPU_NUM);
+  xTaskCreatePinnedToCore(vControlTask, "CONTROL_TASK", configMINIMAL_STACK_SIZE + (1024 * 20), NULL, 2, &xControlTaskHandle, PRO_CPU_NUM);
   if(xControlTaskHandle == NULL){
     Serial.println("Erro na criação da task de controle dos servos!");
     while(1);
@@ -316,6 +316,9 @@ void vDisplayWriteTask(void *pvParameters){
 void vSDCardSaveTask(void *pvParameters){
   // Variável para receber o estado de voo da fila
   flightState receivedFlightState;
+  
+  // Estado de voo antigo para evitar escritas repetidas
+  flightState oldFlightState = CRUISE;
 
   // Variável de contagem de linhas salvas
   uint8_t lineCount = 0;
@@ -327,14 +330,19 @@ void vSDCardSaveTask(void *pvParameters){
     // Formata a linha de dados para salvar
     String dataLine = String(millis()) + "," + flightStatesTexts[receivedFlightState];
     
-    // Salva a linha no cartão SD
-    SdLogger.writeLine(dataLine);
-    lineCount++;
+    if(receivedFlightState != oldFlightState){ 
+      // Salva a linha no cartão SD
+      SdLogger.writeLine(dataLine);
+      lineCount++;
 
-    // Flush dos dados após 10 linhas escritas para garantir salvamento
-    if(lineCount >= 10){
-      lineCount = 0;
-      SdLogger.FlushPackage();
+      // Flush dos dados após 10 linhas escritas para garantir salvamento
+      if(lineCount >= 10){
+        lineCount = 0;
+        SdLogger.FlushPackage();
+      }
+
+      // Atualiza o estado de voo antigo
+      oldFlightState = receivedFlightState;
     }
 
     // Aguarda 100ms antes da próxima iteração
