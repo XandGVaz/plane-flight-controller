@@ -1,3 +1,22 @@
+/*
+ *      Created on: dezembro, 10, 2025
+ *      @author: Vitor Alexandre (XandGVaz)
+ *
+ *  Description:
+ *      Este arquivo implementa o firmware para um controlador de voo de aeromodelo (plane flight controller),
+ * utilizando a plataforma PlatformIO com a biblioteca do Arduino, rodando em um microcontrolador ESP32.
+ * O código integra controle de servomotores, exibição de estado de voo em um display 16x2 e guarda estados
+ * de voo em um cartão SD.
+ *
+ *      O firmware é responsável por ler os comandos de um receptor de rádio (RC), processar os dados dos sensores
+ * para estabilizar o voo e controlar os servos das superfícies de comando (aileron, profundor, leme).
+ * Além disso, ele gerencia o registro de dados de voo em um cartão SD, para análise pós-voo e exibe informações 
+ * críticas em um display. O sistema pode operar em diferentes modos de voo.
+ *
+ *      A utilização das bibliotecas do Arduino e a estrutura do PlatformIO tornam este código específico para
+ * este ecossistema, sendo necessário adaptá-lo para outras plataformas de hardware ou software.
+ */
+
 /*===============================================================================*/
 // Inclusão de bibliotecas necessárias
 
