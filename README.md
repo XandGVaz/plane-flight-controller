@@ -45,6 +45,8 @@ Principais módulos incluídos:
 | 12 | SPI MISO | MISO SPI para Cartão SD |
 | 13 | SPI MOSI | MOSI SPI para Cartão SD |
 
+![Esquema](./docs/esquema.png)
+
 ## 📦 Bibliotecas Utilizadas
 
 - **Arduino framework**
@@ -64,14 +66,12 @@ Principais módulos incluídos:
 │   │   ├── SDCardLogger.h
 │   │   └── servo.hpp
 │   ├── lib/
-│   │   └── README
 │   ├── src/
 │   │   ├── display.cpp
 │   │   ├── main.cpp
 │   │   ├── SDCardLogger.cpp
 │   │   └── servo.cpp
 │   └── test/
-│       └── README
 └── README.md
 ```
 
@@ -81,7 +81,7 @@ Principais módulos incluídos:
 	- `src/`: Arquivos de implementação (`.cpp`) e o `main.cpp`, que contém a lógica principal e a configuração do sistema.
 	- `lib/`: Diretório para bibliotecas locais ou de terceiros.
 
-## 🚀 Estados de Voo
+## ✈️ Estados de Voo
 
 O sistema opera com base nos seguintes estados de voo, determinados pela posição do joystick:
 
@@ -94,6 +94,8 @@ O sistema opera com base nos seguintes estados de voo, determinados pela posiç�
 - **ROLL_LEFT**: Movimento de rolagem para a esquerda.
 
 O botão do joystick alterna o controle do eixo X entre os modos **YAW** (leme) e **ROLL** (ailerons).
+
+![Movimentos de voo](./docs/movimentos_de_voo.jpeg)
 
 ## 📊 Taxa de Amostragem
 
