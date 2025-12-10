@@ -220,13 +220,13 @@ void setup() {
   }
 
   // Criação das filas
-  xFlightStateToDisplay = xQueueCreate(1, sizeof(flightState));
-  xFlightStateToSDCard = xQueueCreate(1, sizeof(flightState));
+  xFlightStateToDisplay = xQueueCreate(5, sizeof(flightState));
+  xFlightStateToSDCard = xQueueCreate(5, sizeof(flightState));
   xFlightStateToControl = xQueueCreate(5, sizeof(controlData));
   xChangeYawOrRollToControl = xQueueCreate(1, sizeof(xMoviementState));
 
   // Criação dos software timers
-  xJoystickReadTimerHandle = xTimerCreate("JOYSTICK_READ_TIMER", pdMS_TO_TICKS(50), pdTRUE, NULL, vJoystickReadTimerCallback);
+  xJoystickReadTimerHandle = xTimerCreate("JOYSTICK_READ_TIMER", pdMS_TO_TICKS(70), pdTRUE, NULL, vJoystickReadTimerCallback);
   if(xJoystickReadTimerHandle == NULL){
     Serial.println("Erro na criação do timer de leitura do joystick!");
     while(1);
@@ -316,6 +316,9 @@ void vSDCardSaveTask(void *pvParameters){
   // Variável para receber o estado de voo da fila
   flightState receivedFlightState;
 
+  // Variável de contagem de linhas salvas
+  uint8_t lineCount = 0;
+
   while(1){
     // Espera por um estado de voo na fila
     xQueueReceive(xFlightStateToSDCard, &receivedFlightState, 0);
@@ -324,10 +327,17 @@ void vSDCardSaveTask(void *pvParameters){
     String dataLine = String(millis()) + "," + flightStatesTexts[receivedFlightState];
     
     // Salva a linha no cartão SD
-    //SdLogger.writeLine(dataLine);
+    SdLogger.writeLine(dataLine);
+    lineCount++;
+
+    // Flush dos dados após 10 linhas escritas para garantir salvamento
+    if(lineCount >= 10){
+      lineCount = 0;
+      SdLogger.FlushPackage();
+    }
 
     // Aguarda um tempo antes da próxima iteração
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -387,9 +397,25 @@ void vControlTask(void *pvParameters){
   // Variável para receber o estado de voo da fila
   controlData receivedControlData;
 
+  // Pacote de controle antigo para evitar movimentações desnecessárias
+  controlData oldControlData = {CRUISE, YAW_MOVIEMENT, 2048, 2048};
+
   while(1){
     // Espera por um estado de voo na fila
     xQueueReceive(xFlightStateToControl, &receivedControlData, portMAX_DELAY);
+
+    // Evita movimentações desnecessárias dos servos
+    if( 
+        (receivedControlData.state == oldControlData.state) &&
+        (receivedControlData.xMoviement == oldControlData.xMoviement) &&
+        (receivedControlData.xValue == oldControlData.xValue) &&
+        (receivedControlData.yValue == oldControlData.yValue)
+    ){
+      continue;
+    }
+
+    // Atualiza o pacote de controle antigo
+    oldControlData = receivedControlData;
     
     // Seta todos os servos na posição neutra se o avião estiver em cruzeiro
     if(receivedControlData.state == CRUISE){
